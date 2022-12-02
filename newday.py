@@ -15,8 +15,9 @@ def main(day=None):
     
     if day is None:
         # Get next day from folder structure
-        n = max([int(re.search(pattern, i)[1]) for i in os.listdir() if re.search(pattern, i)])+1
-    elif os.isdir('Day' + str(day).zfill(2)):
+        day_folder_numbers = [int(re.search(pattern, i)[1]) for i in os.listdir() if re.search(pattern, i)]
+        n = max(day_folder_numbers)+1 if day_folder_numbers else 1
+    elif os.path.isdir('Day' + str(day).zfill(2)):
         raise Exception(f"Folder {'Day' + str(day).zfill(2)} already exists")
     else:
         n = day
@@ -29,10 +30,10 @@ def main(day=None):
     
     folder = s + '/'
 
-    with open(folder +'DayXX.ipynb', 'r+') as f:
+    with open(folder +'DayXX.py', 'r+') as f:
         t = f.read()
         f.seek(0)
-        t = t.replace('DayXX', s).replace('Day XX', f'Day {n}')
+        t = t.replace('DayXX', s).replace('XX', f'{n}')
         f.write(t)
         f.truncate()
     
