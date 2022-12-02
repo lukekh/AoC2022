@@ -1,4 +1,5 @@
 # Day01
+import time
 day = 1
 inputs = [i[:-1] for i in open('Day01.in').readlines()]
 
@@ -47,10 +48,7 @@ def part_two(inputs):
 # Main
 def main(inputs):
     print(f":: Solutions to Day {day} ::")
-    # Sample of the inputs
-    print(f"Sample of inputs:")
-    print(inputs[0:10])
-
+    
     # Part One
     print(f":: Part One ::")
     c, e = part_one(inputs)
@@ -64,4 +62,7 @@ def main(inputs):
 
 # Run main
 if __name__ == "__main__":
+    t = time.time()
     main(inputs)
+    print(f":: Finished in {time.time() - t: .4f} seconds ::")
+

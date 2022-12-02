@@ -1,7 +1,5 @@
 # Day02
-# Here is my solution to Day 2
 import time
-t = time.time()
 day = 2
 inputs = [i[:-1].split(" ") for i in open('Day02.in').readlines()]
 
@@ -62,4 +60,6 @@ def main(inputs):
 
 # Run main
 if __name__ == "__main__":
+    t = time.time()
     main(inputs)
+    print(f":: Finished in {time.time() - t: .4f} seconds ::")
