@@ -1,6 +1,8 @@
-# Day02
+# AoC :: Day 2
 import time
 day = 2
+
+# Parse inputs
 inputs = [i[:-1].split(" ") for i in open('Day02.in').readlines()]
 
 
@@ -45,21 +47,28 @@ def part_two(inputs):
         [strat(*i) for i in inputs]
     )
 
-# Main
+
+# run both solutions and print outputs + runtime
 def main(inputs):
-    print(f":: Solutions to Day {day} ::")
-    
+    print(f":: Advent of Code 2022 -- Day {day} ::")
+
     # Part One
     print(f":: Part One ::")
-    print(f"Your score would be {part_one(inputs)} if everything goes to plan.")
+    t1 = -time.time()
+    a1 = part_one(inputs)
+    t1 += time.time()
+    print(f"Your score would be {a1} if everything goes to plan.")
+    print(f"runtime: {t1: .4f}s")
 
     # Part Two
     print(f":: Part Two ::")
-    print(f"Your score would be {part_two(inputs)} if everything goes to the strategy guide.")
+    t2 = -time.time()
+    a2 = part_two(inputs)
+    t2 += time.time()
+    print(f"Your score would be {a2} if everything goes to the strategy guide.")
+    print(f"runtime: {t2: .4f}s")
+    print(f":: total runtime: {t1+t2: .4f}s ::")
 
 
-# Run main
 if __name__ == "__main__":
-    t = time.time()
     main(inputs)
-    print(f":: Finished in {time.time() - t: .4f} seconds ::")

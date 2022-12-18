@@ -1,0 +1,8 @@
+:: Advent of Code 2022 -- Day 3 ::
+:: Part One ::
+Answer: 7795
+runtime:  0.0009s
+:: Part Two ::
+Answer: 2703
+runtime:  0.0007s
+:: total runtime:  0.0016s ::

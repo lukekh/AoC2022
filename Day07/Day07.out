@@ -1,0 +1,8 @@
+:: Advent of Code 2022 -- Day 7 ::
+:: Part One ::
+The sum of the total sizes is 1,886,043
+runtime:  0.0024s
+:: Part Two ::
+The smallest directory to delete is /trtl/jlfrcp/tsstr which has size 3,842,121
+runtime:  0.0003s
+:: total runtime:  0.0028s ::

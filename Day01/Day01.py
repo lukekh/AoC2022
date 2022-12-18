@@ -1,6 +1,8 @@
-# Day01
+# AoC :: Day 1
 import time
 day = 1
+
+# Parse inputs
 inputs = [i[:-1] for i in open('Day01.in').readlines()]
 
 
@@ -47,7 +49,7 @@ def part_two(inputs):
 
 # Main
 def main(inputs):
-    print(f":: Solutions to Day {day} ::")
+    print(f":: Advent of Code 2022 -- Day {day} ::")
     
     # Part One
     print(f":: Part One ::")
@@ -59,10 +61,27 @@ def main(inputs):
     c = part_two(inputs)
     print(f"The top three calorie counts are {', '.join([str(i) for i in c])} hence the total is {sum(c)} calories.")
 
+# run both solutions and print outputs + runtime
+def main(inputs):
+    print(f":: Advent of Code 2022 -- Day {day} ::")
 
-# Run main
+    # Part One
+    print(f":: Part One ::")
+    t1 = -time.time()
+    c, e = part_one(inputs)
+    t1 += time.time()
+    print(f"Elf {e} is carrying {c} total calories.")
+    print(f"runtime: {t1: .4f}s")
+
+    # Part Two
+    print(f":: Part Two ::")
+    t2 = -time.time()
+    c = part_two(inputs)
+    t2 += time.time()
+    print(f"The top three calorie counts are {', '.join([str(i) for i in c])} hence the total is {sum(c)} calories.")
+    print(f"runtime: {t2: .4f}s")
+    print(f":: total runtime: {t1+t2: .4f}s ::")
+
+
 if __name__ == "__main__":
-    t = time.time()
     main(inputs)
-    print(f":: Finished in {time.time() - t: .4f} seconds ::")
-

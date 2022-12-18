@@ -1,0 +1,8 @@
+:: Advent of Code 2022 -- Day 6 ::
+:: Part One ::
+Start of packet hvtq appears after character 1155
+runtime:  0.0006s
+:: Part Two ::
+Start of message jzprftbqvdsghn appears after character 2789
+runtime:  0.0024s
+:: total runtime:  0.0030s ::
