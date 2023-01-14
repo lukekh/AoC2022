@@ -1,0 +1,8 @@
+:: Advent of Code 2022 -- Day 11 ::
+:: Part One ::
+Answer: 112815
+runtime:  0.0108s
+:: Part Two ::
+Answer: 25738411485
+runtime:  2.6873s
+:: total runtime:  2.6981s ::

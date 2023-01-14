@@ -1,0 +1,8 @@
+:: Advent of Code 2022 -- Day 9 ::
+:: Part One ::
+Answer: 6190
+runtime:  0.0170s
+:: Part Two ::
+Answer: 2516
+runtime:  0.2725s
+:: total runtime:  0.2895s ::

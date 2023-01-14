@@ -1,0 +1,8 @@
+:: Advent of Code 2022 -- Day 12 ::
+:: Part One ::
+Answer: 383
+runtime:  0.0108s
+:: Part Two ::
+Answer: 377
+runtime:  0.0105s
+:: total runtime:  0.0213s ::

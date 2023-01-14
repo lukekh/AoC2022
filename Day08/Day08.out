@@ -1,0 +1,8 @@
+:: Advent of Code 2022 -- Day 8 ::
+:: Part One ::
+There are 1,812 distinct visible trees from the edge of the forest.
+runtime:  0.0044s
+:: Part Two ::
+With a scenic score of 315,495, the 16th tree in the 58th row has the highest possible scenic score.
+runtime:  0.0713s
+:: total runtime:  0.0757s ::
