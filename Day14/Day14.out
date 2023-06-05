@@ -1,0 +1,8 @@
+:: Advent of Code 2022 -- Day 14 ::
+:: Part One ::
+Answer: 618
+runtime:  0.1097s
+:: Part Two ::
+Answer: 26358
+runtime:  11.1709s
+:: total runtime:  11.2806s ::
