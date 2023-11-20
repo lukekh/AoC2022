@@ -1,0 +1,8 @@
+:: Advent of Code 2022 -- Day 15 ::
+:: Part One ::
+Number of locations that the beacon cannot be in row 2000000: 4883971
+runtime:  0.0001s
+:: Part Two ::
+Tuning Frequency: 12691026767556
+runtime:  40.3665s
+:: total runtime:  40.3666s ::

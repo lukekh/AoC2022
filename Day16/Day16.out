@@ -1,0 +1,8 @@
+:: Advent of Code 2022 -- Day 16 ::
+:: Part One ::
+Answer: 2359
+runtime:  1.0264s
+:: Part Two ::
+Answer: 2999
+runtime:  35.8463s
+:: total runtime:  36.8728s ::
