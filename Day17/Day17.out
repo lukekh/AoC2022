@@ -1,0 +1,9 @@
+:: Advent of Code 2022 -- Day 17 ::
+:: Part One ::
+Answer: 3149
+runtime:  0.0894s
+:: Part Two ::
+resetting lookup
+Answer: 1553982300884
+runtime:  0.5100s
+:: total runtime:  0.5993s ::

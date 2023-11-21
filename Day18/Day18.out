@@ -1,0 +1,8 @@
+:: Advent of Code 2022 -- Day 18 ::
+:: Part One ::
+Answer: 4512
+runtime:  0.0008s
+:: Part Two ::
+Answer: 2554
+runtime:  0.0309s
+:: total runtime:  0.0316s ::
