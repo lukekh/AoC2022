@@ -1,6 +1,6 @@
 """AoC :: Day 17"""
 import time
-from typing import List
+# from typing import List
 import numpy as np
 day = 17
 
@@ -16,8 +16,6 @@ class Shape:
         self.array = np.flipud(array) if flipped else array
         self.height, self.width = self.array.shape
 
-        # self.projections = self.generate_projections()
-
     def __iter__(self):
         return iter(self.array)
 
@@ -27,18 +25,11 @@ class Shape:
     def __reversed__(self):
         return reversed(self.array)
 
-    # def generate_projections(self, chamber_width=CHAMBER_WIDTH):
-    #     """Generate the different shape projections for indexing"""
-    #     empty_row = np.array([[False for _ in range(chamber_width)]])
-    #     empty_slice = np.repeat(empty_row, self.height, axis=0)
-
-    #     projections = []
-    #     for i in range(chamber_width - self.width + 1):
-    #         new_proj = empty_slice.copy()
-    #         new_proj[0:self.height, i:self.width+i] = self.array
-    #         projections.append(new_proj)
-
-    #     return projections
+    def __eq__(self, other: "Shape"):
+        try:
+            return bool(np.all(self.array == other.array))
+        except AttributeError:
+            return False
 
 
 ROCKS = [
@@ -88,7 +79,7 @@ def clamp(lb: int, ub: int):
 
 class InfiniteLoop:
     """Never ending loop over a list"""
-    def __init__(self, items):
+    def __init__(self, items, ):
         self.items = items
         self.len = len(items)
         self.pos = 0
@@ -100,16 +91,69 @@ class InfiniteLoop:
         val = self.items[self.pos]
         self.pos += 1
         self.pos %= self.len
+
         return val
+
 
 with open('Day17/Day17.in', encoding="utf8") as f:
     inputs = list(map(parse, f.read()[:-1]))
+
+class LookUp:
+    """Keep track of state"""
+    def __init__(self, rocks: InfiniteLoop, instructions: InfiniteLoop):
+        self.rocks = rocks
+        self.instructions = instructions
+
+        # self.table[rock_id][instruction_id] will give you an x position
+        # If these begin repeating we've reached a cycle
+        # Init with self.table[rock_id][instruction_id] = None
+        self.table = {
+            i: {j: None for j in range(len(instructions.items))} for i in range(len(rocks.items))
+        }
+
+        # Don't init all (rock, instruction) pairs as False since some
+        # combinations may never appear
+        self.checks = {
+            i: {} for i in range(len(rocks.items))
+        }
+        self.ctr = 0
+        self.height = None
+
+    def cyclic(self):
+        """Check if a cycle has been detected"""
+        cyclic = True
+        for instruction_dict in self.checks.values():
+            cyclic &= all(instruction_dict.values())
+
+        return cyclic
+
+    def record(self, x, tower: "Tower"):
+        """Record the behaviour to check if it's cyclic"""
+        i, j = self.rocks.pos, self.instructions.pos
+        val = self.table[i][j]
+        self.table[i][j] = x
+
+        if val == x:
+            self.checks[i][j] = True
+            self.ctr += 1
+            # print(f"rock {i}: instruction {j}:: landing in the same spot {x}")
+        else:
+            self.checks[i][j] = False
+            # if self.ctr != 0:
+            #     print(f"before: ctr = {self.ctr}, instruction_id = {self.instructions.pos}")
+            self.ctr = 0
+            self.height = len(tower.tower)
+            # if self.ctr != 0:
+            #     print(f"after:  ctr = {self.ctr}")
+
 
 class Tower:
     """represents the tower of rocks in the chamber"""
     def __init__(self, width=CHAMBER_WIDTH):
         self.width = width
         self.tower = np.array([[True for _ in range(width)]])
+
+        self.memory = {}
 
     def lock(self, shape: Shape, x: int, y: int):
         """lock a shape in the tower"""
@@ -176,6 +220,32 @@ class Tower:
 
         self.lock(shape, x, y)
 
+    def drop_pt2(self, shape: Shape, instructions, lookup: LookUp):
+        """drop a shape and save in lookup table"""
+        # x, y represent the bottom left corner of the bounding box of the shape
+        # n.b that 0 <= x <= CHAMBER_WIDTH - shape.width
+        x = BUFFER_LEFT
+        x_max = CHAMBER_WIDTH - shape.width
+        y =  len(self.tower) + BUFFER_HEIGHT
+
+        # Clamp function
+        c = clamp(0, x_max)
+
+        for instruction in instructions:
+            x_new = c(x + instruction)
+            move, fall = self.test_step(shape, y, x, x_new)
+            # Does shape move
+            if move:
+                x = x_new
+            # Does shape fall
+            if fall:
+                y -= 1
+            else:
+                break
+
+        self.lock(shape, x, y)
+        lookup.record(x, self)
+
     def print(self):
         """print"""
         for row in reversed(self.tower):
@@ -196,6 +266,33 @@ def part_one(args, N=2022):
 
     return len(t.tower) - 1
 
+def part_two(args, N=1_000_000_000_000):
+    """Solution to part two"""
+    t = Tower()
+    instructions = InfiniteLoop(args)
+    rocks = InfiniteLoop(ROCKS)
+    lookup = LookUp(rocks, instructions)
+    reset_lookup = True
+    look_for_cycle = True
+    cycle_height = None
+
+    for n, rock in enumerate(rocks):
+        if (n >= len(args)) & reset_lookup:
+            print("resetting lookup")
+            reset_lookup = False
+            lookup = LookUp(rocks, instructions)
+        if n >= N:
+            break
+        t.drop_pt2(rock, instructions, lookup)
+        if look_for_cycle and lookup.cyclic():
+            h = len(t.tower) - lookup.height
+            n_cycles = (N - n)//lookup.ctr
+            cycle_height = h * n_cycles
+            N -= n_cycles * lookup.ctr
+            look_for_cycle = False
+
+    return len(t.tower) - 1 + cycle_height
+
 
 # run both solutions and print outputs + runtime
 def main():
@@ -213,7 +310,7 @@ def main():
     # Part Two
     print(":: Part Two ::")
     t2 = -time.time()
-    a2 = part_one(inputs, 1_000_000_000_000)
+    a2 = part_two(inputs, 1_000_000_000_000)
     t2 += time.time()
     print(f"Answer: {a2}")
     print(f"runtime: {t2: .4f}s")
