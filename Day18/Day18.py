@@ -94,7 +94,7 @@ class Droplet:
             for pt in boundary:
                 new_boundary |= adjacent(pt, new_droplet, flood_fill)
             boundary = new_boundary
-        
+
         self.array = ~flood_fill
 
 
