@@ -1,256 +1,44 @@
-"""AoC :: Day 19"""
+"""
+AoC :: Day 19
+
+I have totally stolen this solution from [here](https://github.com/BeatrizBL/Adventofcode_2022/blob/master/19_Not_Enough_Minerals/not_enough_minerals.py)
+"""
 from dataclasses import dataclass
 import re
 import time
-from typing import Dict, List, Literal, Optional, Pattern
+from typing import List, Literal, Pattern
+from cvxopt.glpk import ilp, options
+from cvxopt import matrix, solvers
 day = 19
 
+RESOURCES = ["ore", "clay", "obsidian", "geode"]
 
-# Parse inputs
 @dataclass
 class Resources:
-    """The price of doing business"""
+    """Some amount of ore, clay and obsidian"""
     ore: int
     clay: int
     obsidian: int
-    geodes: int = 0
 
-    def __add__(self, other: "Resources"):
-        return Resources(
-            self.ore + other.ore,
-            self.clay + other.clay,
-            self.obsidian + other.obsidian,
-            self.geodes + other.geodes,
-        )
-
-    def __sub__(self, other: "Resources"):
-        return Resources(
-            self.ore - other.ore,
-            self.clay - other.clay,
-            self.obsidian - other.obsidian,
-            self.geodes - other.geodes,
-        )
-
-KINDS = Literal["resource", "robot"]
-RESOURCES = Literal["ore", "clay", "obsidian", "geodes"]
-
-@dataclass
-class Symbol:
-    """A symbolic representation of a free variable"""
-    mins: int
-    kind: Optional[KINDS] = None
-    type: Optional[RESOURCES] = None
-
-    @property
-    def resource(self):
-        """return symbol as kind==resource"""
-        return Symbol(mins=self.mins, kind="resource", type=self.type)
-
-    @property
-    def robot(self):
-        """return symbol as a kind==robot"""
-        return Symbol(mins=self.mins, kind="robot", type=self.type)
-
-    @property
-    def ore(self):
-        """return symbol as a type==ore"""
-        return Symbol(mins=self.mins, kind=self.kind, type="ore")
-
-    @property
-    def clay(self):
-        """return symbol as a type==clay"""
-        return Symbol(mins=self.mins, kind=self.kind, type="clay")
-
-    @property
-    def obsidian(self):
-        """return symbol as a type==obsidian"""
-        return Symbol(mins=self.mins, kind=self.kind, type="obsidian")
-
-    @property
-    def geodes(self):
-        """return symbol as a type==geodes"""
-        return Symbol(mins=self.mins, kind=self.kind, type="geodes")
-
-    def __hash__(self):
-        return hash((self.mins, self.kind, self.type, "symbol"))
-
-    def __call__(self, resource: Resources):
-        if sum(map(abs, [resource.ore, resource.clay, resource.obsidian, resource.geodes])) != 1:
-            raise ValueError(f"Resource must refer to a single kind of resource, got {resource}")
-        if resource.ore:
-            return self.ore
-        elif resource.ore:
-            return self.clay
-        elif resource.obsidian:
-            return self.obsidian
-        elif resource.geodes:
-            return self.geodes
-        else:
-            raise ValueError(f"something went wrong in symbol call with resource {resource}")
-
-    def __add__(self, other):
-        return AST(
-            "+",
-            left=self,
-            right=other
-        )
-
-    def __sub__(self, other):
-        return AST(
-            "-",
-            left=self,
-            right=other
-        )
-
-    def __mul__(self, other):
-        return AST(
-            "*",
-            left=self,
-            right=other
-        )
-
-    def __lt__(self, other):
-        return AST(
-            operation="<",
-            left=self,
-            right=other
-        )
-
-    def __le__(self, other):
-        return AST(
-            operation="<",
-            left=self,
-            right=other+1
-        )
-
-    def __gt__(self, other):
-        return AST(
-            operation="<",
-            left=other,
-            right=self
-        )
-
-    def __ge__(self, other):
-        return AST(
-            operation="<",
-            left=other-1,
-            right=self
-        )
-
-    def __eq__(self, other):
-        return AST(
-            operation="==",
-            left=self,
-            right=other
-        )
-
-@dataclass
-class AST:
-    """An AST for building equations with ints and symbols"""
-    operation: Literal["+", "-", "*", "<", "==", None] = None
-    left: "AST" | Symbol | int
-    right: "AST" | Symbol | int | None = None
-
-    def __add__(self, other):
-        if (self.left == 0) and (self.operation is None):
-            return other
-        return AST(
-            operation="+",
-            left=self,
-            right=other
-        )
-
-    def __sub__(self, other):
-        return AST(
-            operation="-",
-            left=self,
-            right=other
-        )
-
-    def __mul__(self, other):
-        return AST(
-            operation="*",
-            left=self,
-            right=other
-        )
-
-    def __lt__(self, other):
-        return AST(
-            operation="<",
-            left=self,
-            right=other
-        )
-
-    def __le__(self, other):
-        return AST(
-            operation="<",
-            left=self,
-            right=other+1
-        )
-
-    def __gt__(self, other):
-        return AST(
-            operation="<",
-            left=other,
-            right=self
-        )
-
-    def __ge__(self, other):
-        return AST(
-            operation="<",
-            left=other-1,
-            right=self
-        )
-
-    def __eq__(self, other):
-        return AST(
-            operation="==",
-            left=self,
-            right=other
-        )
+    def __getitem__(self, item: Literal["ore", "clay", "obsidian", "geode"]) -> int:
+        return self.__getattribute__(item)
 
 
 @dataclass
 class Blueprint:
-    """A scenario"""
-    # robot costs
-    ore_robot: Resources
-    clay_robot: Resources
-    obsidian_robot: Resources
-    geode_robot: Resources
+    """The robot costs for each blueprint"""
+    id: int
+    ore: Resources
+    clay: Resources
+    obsidian: Resources
+    geode: Resources
 
-    def formulate(self, mins: int = 24):
-        """
-        turn a blueprint into a MIP which should solve:
-        `minimize: c @ x`\\
-        subject to:\\
-        `A_ub @ x <= b_ub`\\
-        `A_eq @ x == b_eq`\\
-        `lb <= x <= ub`
-
-        :returns: (`A_eq`, `b_eq`), (`A_ub`, `b_ub`), `c`
-        """
-        equations = []
-
-        # You can only buy one robot each minute
-        for m in range(1, mins+1):
-            eq = AST(None, 0)
-            for resource in RESOURCES:
-                equations.append(
-                    0 <= Symbol(m, type=resource).robot
-                )
-                eq += Symbol(m, type=resource).robot
-            equations.append(eq <= 1)
-
-        # You must have enough accumulated resources to buy a robot
-        for m in range(1, mins+1):
-            eq = AST(None, 0)
-            for j in range(1, m):
-                pass
+    def __getitem__(self, item: Literal["ore", "clay", "obsidian", "geode"]) -> Resources:
+        return self.__getattribute__(item)
 
 
 re_parse = re.compile(
-    r"Blueprint \d+: Each ore robot costs (\d+) ore. "
+    r"Blueprint (\d+): Each ore robot costs (\d+) ore. "
     r"Each clay robot costs (\d+) ore. "
     r"Each obsidian robot costs (\d+) ore and (\d+) clay. "
     r"Each geode robot costs (\d+) ore and (\d+) obsidian."
@@ -266,10 +54,11 @@ def parse(s: str, regex: Pattern = re_parse):
     m = regex.match(s)
     if m is not None:
         return Blueprint(
-            Resources( int(m.group(1)), 0, 0 ),
-            Resources( int(m.group(2)), 0, 0 ),
-            Resources( int(m.group(3)), int(m.group(4)), 0 ),
-            Resources( int(m.group(5)), 0, int(m.group(6)) ),
+            id = int(m.group(1)),
+            ore = Resources( int(m.group(2)), 0, 0 ),
+            clay = Resources( int(m.group(3)), 0, 0 ),
+            obsidian = Resources( int(m.group(4)), int(m.group(5)), 0 ),
+            geode = Resources( int(m.group(6)), 0, int(m.group(7)) ),
         )
     raise ValueError("could not parse into Blueprint of Prices")
 
@@ -278,15 +67,90 @@ with open('Day19/Day19.in', encoding="utf8") as f:
     inputs = [parse(i[:-1]) for i in f.readlines()]
 
 
-def part_one(blueprints: List[Blueprint], mins=24):
+def linear_optimization(blueprint: Blueprint, mins: int = 24):
+    """
+    Set up the constraints and objective, then do linear optimization
+
+    We will need to find the optimal decisions to maximise the number of geodes.
+    For each t in {1, 2, ..., mins} you may spend resources to purchase a robot.
+    So for each type of robot we will have a free variable every minute: R^{t}_min, where t \in {ore, clay, obsidian, geode}.
+    """
+    obj = [0]*mins + [0]*mins + [0]*mins + [-(mins-i) for i in range(mins)]
+    nvars = len(obj)
+    lhs_ineq = []
+    rhs_ineq = []
+    # Current number of robots never higher than the total materials needed minus used
+    for robot_idx, robot in enumerate(RESOURCES):
+        for resource_idx, resource in enumerate(RESOURCES):
+            if resource == "geode":
+                continue
+            v = blueprint[robot][resource]
+            if v > 0:
+                for i in range(1, mins):
+                    lhs_ineq_i = [0]*nvars
+                    lhs_ineq_i[robot_idx*mins + i] = blueprint[robot][resource]
+                    for j in range(i-1):
+                        lhs_ineq_i[resource_idx*mins + j] = -1
+                    for k, r in enumerate(RESOURCES):
+                        cost = blueprint[r]
+                        if k != robot_idx:
+                            lhs_ineq_i[k*mins + i - 1] += cost[resource]
+                    lhs_ineq.append(lhs_ineq_i)
+                    rhs_ineq.append(0 if resource!='ore' else blueprint[resource][resource])
+    # Current number of robots at most 1 more than in previous step
+    for i in range(1, mins):
+        lhs_ineq_i = [0]*nvars
+        for j in range(len(RESOURCES)):
+            lhs_ineq_i[j*mins + i] = 1
+            lhs_ineq_i[j*mins + i-1] = -1
+        lhs_ineq.append(lhs_ineq_i)
+        rhs_ineq.append(1)
+    # Not possible to lose robots
+    for i in range(len(RESOURCES)):
+        for j in range(1, mins):
+            lhs_ineq_j = [0]*nvars
+            lhs_ineq_j[i*mins + j] = -1
+            lhs_ineq_j[i*mins + j - 1] = 1
+            lhs_ineq.append(lhs_ineq_j)
+            rhs_ineq.append(0)
+    # Starting with just one ore robot
+    lhs_eq = []
+    rhs_eq = []
+    for i in range(len(RESOURCES)):
+        lhs_eq_i = [0]*nvars
+        lhs_eq_i[i*mins] = 1
+        lhs_eq.append(lhs_eq_i)
+        rhs_eq.append((1 if i==0 else 0))
+    # Optimum
+    (_,x) = ilp(
+        c=matrix(obj, tc='d'), 
+        G=matrix(lhs_ineq, tc='d').T, 
+        h=matrix(rhs_ineq, tc='d'),
+        A=matrix(lhs_eq, tc='d').T, 
+        b=matrix(rhs_eq, tc='d'), 
+        I=set(range(len(obj))),
+    )
+    return list(x[(3*mins):(4*mins)])
+
+
+def part_one(blueprints: List[Blueprint], mins: int = 24):
     """Solution to part one"""
-    return 0
+    quality = 0
+    for blueprint in blueprints:
+        geode_times = linear_optimization(blueprint, mins)
+        n = sum(len(geode_times) - geode_times.index(i+1) for i in range(int(max(geode_times))))
+        quality += blueprint.id * n
+    return quality
 
 # part two
-def part_two():
+def part_two(blueprints: List[Blueprint], mins: int = 32, n: int = 3):
     """Solution to part two"""
-    ans = 0
-    return ans
+    value = 1
+    for blueprint in blueprints[:n]:
+        geode_times = linear_optimization(blueprint, mins)
+        n = sum(len(geode_times) - geode_times.index(i+1) for i in range(int(max(geode_times))))
+        value *= n
+    return value
 
 
 # run both solutions and print outputs + runtime
@@ -305,7 +169,7 @@ def main():
     # Part Two
     print(":: Part Two ::")
     t2 = -time.time()
-    a2 = part_two()
+    a2 = part_two(inputs)
     t2 += time.time()
     print(f"Answer: {a2}")
     print(f"runtime: {t2: .4f}s")

@@ -1,0 +1,8 @@
+:: Advent of Code 2022 -- Day 19 ::
+:: Part One ::
+Answer: 1382
+runtime:  1.0844s
+:: Part Two ::
+Answer: 31740
+runtime:  0.6468s
+:: total runtime:  1.7313s ::
