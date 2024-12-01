@@ -1,0 +1,8 @@
+:: Advent of Code 2022 -- Day 21 ::
+:: Part One ::
+Answer: 66174565793494
+runtime:  0.0005s
+:: Part Two ::
+Answer: 3327575724809
+runtime:  0.0489s
+:: total runtime:  0.0494s ::
