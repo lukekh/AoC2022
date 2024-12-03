@@ -23,6 +23,153 @@ PATH = [int(i) if i not in ("R", "L") else i for i in re_instruction.findall(pat
 assert len(pathtext) == len("".join(str(p) for p in PATH)), "Instructions are missing after parsing, check regex catches all possibilities"
 
 # Construct board with warping
+LENGTH = 50
+class Face(Enum):
+    """map faces onto larger grid"""
+    A = (1, 0)
+    B = (2, 0)
+    C = (1, 1)
+    D = (1, 2)
+    E = (0, 2)
+    F = (0, 3)
+
+    @staticmethod
+    def determine_face(x: int, y: int):
+        """A helper function to determine the face"""
+        fx = (x-1)//LENGTH
+        fy = (y-1)//LENGTH
+        return Face((fx, fy))
+
+    def determine_position(self, rel_x: int, rel_y: int) -> tuple[int, int]:
+        """A helper function to determine the face"""
+        Dx, Dy = self.value
+        return rel_x + 1 + LENGTH * Dx, rel_y + LENGTH * Dy + 1
+
+    def warp(self, x: int, y: int, direction: "Direction"):
+        """
+        Where do you end up leaving a face
+        
+        (x, y) is your current position before the warp
+        """
+        x_face, y_face = [fi + di for fi, di in zip(self.value, direction.value)]
+
+        rel_x, rel_y = ((x-1) % LENGTH, (y-1) % LENGTH)
+        match (x_face, y_face):
+            # Go left off A
+            case (0, 0):
+                rel_y = LENGTH - 1 - rel_y
+                rel_x = 0
+                new_face = Face.E
+                new_direction = Direction.RIGHT
+                new_x, new_y = new_face.determine_position(rel_x, rel_y)
+                return (new_x, new_y), new_direction
+            # Go up off A
+            case (1, -1):
+                rel_y = LENGTH - 1 - rel_x
+                rel_x = 0
+                new_face = Face.F
+                new_direction = Direction.RIGHT
+                new_x, new_y = new_face.determine_position(rel_x, rel_y)
+                return (new_x, new_y), new_direction
+            # Go up off B
+            case (2, -1):
+                # rel_x stays the same
+                rel_y = LENGTH - 1
+                new_face = Face.F
+                new_direction = Direction.UP
+                new_x, new_y = new_face.determine_position(rel_x, rel_y)
+                return (new_x, new_y), new_direction
+            # Go right off B
+            case (3, 0):
+                rel_y = LENGTH - 1 - rel_y
+                rel_x = LENGTH - 1
+                new_face = Face.D
+                new_direction = Direction.LEFT
+                new_x, new_y = new_face.determine_position(rel_x, rel_y)
+                return (new_x, new_y), new_direction
+            # Go down off B or right off C
+            case (2, 1):
+                if direction.name == "DOWN":
+                    rel_y = rel_x
+                    rel_x = LENGTH - 1
+                    new_face = Face.C
+                    new_direction = Direction.LEFT
+                    new_x, new_y = new_face.determine_position(rel_x, rel_y)
+                    return (new_x, new_y), new_direction
+                elif direction.name == "RIGHT":
+                    rel_x = rel_y
+                    rel_y = LENGTH - 1
+                    new_face = Face.B
+                    new_direction = Direction.UP
+                    new_x, new_y = new_face.determine_position(rel_x, rel_y)
+                    return (new_x, new_y), new_direction
+                raise ValueError("Not sure how you got here")
+            # Go right off D
+            case (2, 2):
+                rel_y = LENGTH - 1 - rel_y
+                rel_x = LENGTH - 1
+                new_face = Face.B
+                new_direction = Direction.LEFT
+                new_x, new_y = new_face.determine_position(rel_x, rel_y)
+                return (new_x, new_y), new_direction
+            # Go down off D or right off F
+            case (1, 3):
+                if direction.name == "DOWN":
+                    rel_y = rel_x
+                    rel_x = LENGTH - 1
+                    new_face = Face.F
+                    new_direction = Direction.LEFT
+                    new_x, new_y = new_face.determine_position(rel_x, rel_y)
+                    return (new_x, new_y), new_direction
+                elif direction.name == "RIGHT":
+                    rel_x = rel_y
+                    rel_y = LENGTH - 1
+                    new_face = Face.D
+                    new_direction = Direction.UP
+                    new_x, new_y = new_face.determine_position(rel_x, rel_y)
+                    return (new_x, new_y), new_direction
+                raise ValueError("Not sure how you got here")
+            # Go down off F
+            case (0, 4):
+                # rel_x stays the same
+                rel_y = 0
+                new_face = Face.B
+                new_direction = Direction.DOWN
+                new_x, new_y = new_face.determine_position(rel_x, rel_y)
+                return (new_x, new_y), new_direction
+            # Go left off F
+            case (-1, 3):
+                rel_x = rel_y
+                rel_y = 0
+                new_face = Face.A
+                new_direction = Direction.DOWN
+                new_x, new_y = new_face.determine_position(rel_x, rel_y)
+                return (new_x, new_y), new_direction
+            # Go left off E
+            case (-1, 2):
+                rel_y = LENGTH - 1 - rel_y
+                rel_x = 0
+                new_face = Face.A
+                new_direction = Direction.RIGHT
+                new_x, new_y = new_face.determine_position(rel_x, rel_y)
+                return (new_x, new_y), new_direction
+            # Go up off E or left off C
+            case (0, 1):
+                if direction.name == "UP":
+                    rel_y = rel_x
+                    rel_x = 0
+                    new_face = Face.C
+                    new_direction = Direction.RIGHT
+                    new_x, new_y = new_face.determine_position(rel_x, rel_y)
+                    return (new_x, new_y), new_direction
+                elif direction.name == "LEFT":
+                    rel_x = rel_y
+                    rel_y = 0
+                    new_face = Face.E
+                    new_direction = Direction.DOWN
+                    new_x, new_y = new_face.determine_position(rel_x, rel_y)
+                    return (new_x, new_y), new_direction
+
 @dataclass
 class Tile:
     """A tile on the board including position (x, y) and kind ("." or "#)"""
@@ -31,36 +178,12 @@ class Tile:
     kind: Literal[".", "#"]
 
     # Introduced in part two
-    face: int
+    face: Face
 
     @property
     def position(self):
         """Return the (x, y) coordinate of the tile"""
         return (self.x, self.y)
-
-    @staticmethod
-    def determine_face(x: int, y: int):
-        """A helper function to determine the face"""
-        fx = (x-1)//50
-        fy = (y-1)//50
-
-        match (fx, fy):
-            case (1, 0):
-                return 1
-            case (2, 0):
-                return 6
-            case (1, 1):
-                return 2
-            case (1, 2):
-                return 3
-            case (0, 2):
-                return 4
-            case (0, 3):
-                return 5
-            case _:
-                raise ValueError(f"This tile has face coordinates ({fx}, {fy}) which have not been mapped")
-
-
 
 class Direction(Enum):
     """The direction you're facing"""
@@ -80,6 +203,18 @@ class Direction(Enum):
                 return Direction.DOWN if instruction == "L" else Direction.UP
             case "RIGHT":
                 return Direction.UP if instruction == "L" else Direction.DOWN
+
+    def write(self):
+        """Given an instruction, calculate next direction"""
+        match self.name:
+            case "UP":
+                return "^"
+            case "DOWN":
+                return "v"
+            case "LEFT":
+                return "<"
+            case "RIGHT":
+                return ">"
 
     def password(self):
         """the value of the direction in the password for part one"""
@@ -117,13 +252,21 @@ class Board:
                     self.cols[x+1] = []
                 col = self.cols[x+1]
                 if char in (".", "#"):
-                    tile = Tile(x+1, y+1, char, Tile.determine_face(x+1, y+1))
+                    tile = Tile(x+1, y+1, char, Face.determine_face(x+1, y+1))
                     self.tiles[(x+1, y+1)] = tile
                     new_row.append(tile)
                     col.append(tile)
             self.rows[y+1] = new_row
 
-        self.cursor = Cursor(*self.get_row(1)[0].position, Direction.RIGHT)
+        cursor_pos = self.get_row(1)[0].position
+        self._origin = cursor_pos
+        self.cursor = Cursor(*cursor_pos, Direction.RIGHT)
+
+        self.cube_map = [list(row) for row in boardtext.split("\n")]
+
+    def reset_cursor(self):
+        """reset the cursor to its original position"""
+        self.cursor = Cursor(*self._origin, Direction.RIGHT)
 
     def __getitem__(self, pos: tuple[int, int]):
         return self.tiles[pos]
@@ -147,6 +290,47 @@ class Board:
                 self._move_left(steps)
             case "RIGHT":
                 self._move_right(steps)
+
+    def move_cube(self, steps: int):
+        """take steps on the cube one at a time"""
+        for _ in range(steps):
+            tile = self.step()
+            if tile.kind == "#":
+                break
+
+    def step(self):
+        """
+        Perform a step given current cursor position and return the tile
+        to check whether movement stops
+        """
+        x, y = self.cursor.x, self.cursor.y
+        dx, dy = self.cursor.direction.value
+        nx, ny = (x + dx, y + dy)
+
+        # If no warp needs to occur, perform step with simple logic
+        if (nx, ny) in self.tiles:
+            next_tile = self[nx, ny]
+            if next_tile.kind == ".":
+                self.cursor.x = nx
+                self.cursor.y = ny
+                self.cube_map[y-1][x-1] = self.cursor.direction.write()
+        # Otherwise warp
+        else:
+            face = self[x, y].face
+            next_position, next_direction = face.warp(x, y, self.cursor.direction)
+            next_tile = self[next_position]
+            if next_tile.kind == ".":
+                self.cursor.x, self.cursor.y  = next_position
+                self.cube_map[y-1][x-1] = self.cursor.direction.write()
+                self.cursor.direction = next_direction
+
+        return next_tile
+
+
+    def warp(self, x: int, y: int, face: Face):
+        """The logic for warping on a cube"""
+        next_pos, next_direction = face.warp(x, y, self.cursor.direction)
+        return self[next_pos], next_direction
 
     def _move_up(self, steps: int):
         assert self.cursor.direction is Direction.UP, "wrong method being used"
@@ -279,14 +463,24 @@ class Board:
 
     def instruct(self, instruction: int | Literal["L", "R"]):
         """process an instruction"""
-        print(instruction, self.cursor)
         match instruction:
             case int():
                 self.move(instruction)
             case _:
                 self.cursor.direction = self.cursor.direction.turn(instruction)
 
-        print("----->", self.cursor)
+    def instruct_cube(self, instruction: int | Literal["L", "R"]):
+        """process an instruction on the cube"""
+        # print(f"--instruction: {instruction}, cursor = {self.cursor}")
+        match instruction:
+            case int():
+                self.move_cube(instruction)
+            case _:
+                self.cursor.direction = self.cursor.direction.turn(instruction)
+
+    def print_cube(self):
+        print("\n".join(["".join(row) for row in self.cube_map]))
+
 
     def final_password(self):
         """the final password formula defined in part one"""
@@ -303,10 +497,12 @@ def part_one(board: Board, path: list[int | str]):
 
 
 # part two
-def part_two():
+def part_two(board: Board, path: list[int | str]):
     """Solution to part two"""
-    ans = 0
-    return ans
+    for instruction in path[:80]:
+        board.instruct_cube(instruction)
+    board.print_cube()
+    return board.final_password()
 
 
 # run both solutions and print outputs + runtime
@@ -325,7 +521,8 @@ def main():
     # Part Two
     print(":: Part Two ::")
     t2 = -time.time()
-    a2 = part_two()
+    BOARD.reset_cursor()
+    a2 = part_two(BOARD, PATH)
     t2 += time.time()
     print(f"Answer: {a2}")
     print(f"runtime: {t2: .4f}s")
