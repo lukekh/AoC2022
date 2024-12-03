@@ -65,7 +65,7 @@ class Face(Enum):
                 return (new_x, new_y), new_direction
             # Go up off A
             case (1, -1):
-                rel_y = LENGTH - 1 - rel_x
+                rel_y = rel_x
                 rel_x = 0
                 new_face = Face.F
                 new_direction = Direction.RIGHT
@@ -326,12 +326,6 @@ class Board:
 
         return next_tile
 
-
-    def warp(self, x: int, y: int, face: Face):
-        """The logic for warping on a cube"""
-        next_pos, next_direction = face.warp(x, y, self.cursor.direction)
-        return self[next_pos], next_direction
-
     def _move_up(self, steps: int):
         assert self.cursor.direction is Direction.UP, "wrong method being used"
         # Get column of tiles
@@ -471,7 +465,6 @@ class Board:
 
     def instruct_cube(self, instruction: int | Literal["L", "R"]):
         """process an instruction on the cube"""
-        # print(f"--instruction: {instruction}, cursor = {self.cursor}")
         match instruction:
             case int():
                 self.move_cube(instruction)
@@ -479,7 +472,12 @@ class Board:
                 self.cursor.direction = self.cursor.direction.turn(instruction)
 
     def print_cube(self):
+        """Print the path taken by the cursor"""
+        cur = self.cube_map[self.cursor.y][self.cursor.x]
+        self.cube_map[self.cursor.y][self.cursor.x] = "X"
         print("\n".join(["".join(row) for row in self.cube_map]))
+        self.cube_map[self.cursor.y][self.cursor.x] = cur
+
 
 
     def final_password(self):
@@ -499,9 +497,8 @@ def part_one(board: Board, path: list[int | str]):
 # part two
 def part_two(board: Board, path: list[int | str]):
     """Solution to part two"""
-    for instruction in path[:80]:
+    for instruction in path:
         board.instruct_cube(instruction)
-    board.print_cube()
     return board.final_password()
 
 
